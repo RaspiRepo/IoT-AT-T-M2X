@@ -47,27 +47,36 @@ cpu_usage_stream = client.device(device_id).stream(cpu_usage)
 count          = 0
 prv_temp       = 0
 prev_cpu_usage = 0
+start_time     = time.time()
+report_interval = 300.0 #5 minutes
 
 #Infinite loop. Check every 10 seconds and if there is changes above specified threshold
 #update value to at&t m2x server
 while (count < 10) :
+
+    elapsed_time = time.time() - start_time
+
+
     CPU_temp = int(int(getCPUtemperature())/1000.0)
 
     curr_cpu_usage = float(getCPU_usage ())
 
     #Send CPU temperature value only if there is a change from previous to current
     #Threashold value > cpu_temp_threshold celsius
-    if (abs(prv_temp - CPU_temp) > cpu_temp_threshold) :
+    if (abs(prv_temp - CPU_temp) > cpu_temp_threshold) or elapsed_time >= report_interval :
         temp_stream.add_value(CPU_temp)
         prv_temp = CPU_temp
 
     #Update CPU load only if considerable difference between previous and current
     #
-    if (abs(prev_cpu_usage - curr_cpu_usage) > cpu_load_threshold) :
+    if (abs(prev_cpu_usage - curr_cpu_usage) > cpu_load_threshold) or elapsed_time >= report_interval :
         #send values to m2m service
         cpu_usage_stream.add_value(curr_cpu_usage)
 
         prev_cpu_usage = curr_cpu_usage
 
-    print("curr temp ", CPU_temp, "pretemp ", prv_temp, "cpu ", curr_cpu_usage, " prev ", prev_cpu_usage)
+    if elapsed_time >= report_interval :
+        start_time = time.time()
+
+    print("elapsed time ", str(elapsed_time), "curr temp ", CPU_temp, "pretemp ", prv_temp, "cpu ", curr_cpu_usage, " prev ", prev_cpu_usage)
     time.sleep(10)
